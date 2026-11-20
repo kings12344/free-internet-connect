@@ -17,6 +17,8 @@
             android:hint="Password (optional)" android:inputType="textPassword" android:singleLine="true" />
         <Button android:id="@+id/btnConnect" android:layout_width="match_parent" android:layout_height="wrap_content"
             android:layout_marginTop="12dp" android:text="TEST CONNECTION" android:backgroundTint="#009688" android:textColor="#FFFFFF" />
+        <Button android:id="@+id/btnFetch" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="FETCH LATEST CANDIDATES" />
         <Button android:id="@+id/btnClear" android:layout_width="match_parent" android:layout_height="wrap_content"
             android:text="CLEAR PROXY" />
         <TextView android:id="@+id/tvStatus" android:layout_width="match_parent" android:layout_height="wrap_content"
