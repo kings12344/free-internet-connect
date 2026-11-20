@@ -1,0 +1,11 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:gravity="center" android:padding="20dp">
+    <TextView android:id="@+id/tvStatus" android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:text="Ready" android:textSize="18sp" android:layout_marginBottom="20dp" />
+    <Button android:id="@+id/btnConnect" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="TEST FREE PROXIES" android:backgroundTint="#009688" android:textColor="#FFFFFF" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp"
+        android:text="Warning: public proxies are operated by unknown parties and may inspect or modify traffic. Do not use for banking, passwords, or private data. This app only tests HTTP proxy connectivity; it does not create a device-wide VPN."
+        android:textSize="13sp" android:textColor="#666666" />
+</LinearLayout>
