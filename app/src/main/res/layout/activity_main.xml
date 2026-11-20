@@ -1,11 +1,28 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent" android:layout_height="match_parent"
-    android:orientation="vertical" android:gravity="center" android:padding="20dp">
-    <TextView android:id="@+id/tvStatus" android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:text="Ready" android:textSize="18sp" android:layout_marginBottom="20dp" />
-    <Button android:id="@+id/btnConnect" android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:text="TEST FREE PROXIES" android:backgroundTint="#009688" android:textColor="#FFFFFF" />
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp"
-        android:text="Warning: public proxies are operated by unknown parties and may inspect or modify traffic. Do not use for banking, passwords, or private data. This app only tests HTTP proxy connectivity; it does not create a device-wide VPN."
-        android:textSize="13sp" android:textColor="#666666" />
-</LinearLayout>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="20dp">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Reliable connectivity test" android:textSize="24sp" android:textStyle="bold" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp"
+            android:text="Public proxy IPs expire quickly. Enter a proxy/VPN endpoint that you own or trust, or test your normal internet connection."
+            android:textSize="14sp" />
+        <EditText android:id="@+id/etHost" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="Proxy host or IP (optional)" android:inputType="textUri" android:singleLine="true" />
+        <EditText android:id="@+id/etPort" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="Proxy port (for example 8080)" android:inputType="number" android:singleLine="true" />
+        <EditText android:id="@+id/etUser" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="Username (optional)" android:inputType="text" android:singleLine="true" />
+        <EditText android:id="@+id/etPassword" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="Password (optional)" android:inputType="textPassword" android:singleLine="true" />
+        <Button android:id="@+id/btnConnect" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="12dp" android:text="TEST CONNECTION" android:backgroundTint="#009688" android:textColor="#FFFFFF" />
+        <Button android:id="@+id/btnClear" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="CLEAR PROXY" />
+        <TextView android:id="@+id/tvStatus" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="18dp" android:text="Ready" android:textSize="17sp" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="22dp"
+            android:text="Security: a proxy can observe or alter traffic. Never use an unknown proxy for banking, passwords, or private data. This app does not create a device-wide VPN and cannot provide free/unmetered service without a legitimate upstream connection."
+            android:textSize="13sp" android:textColor="#666666" />
+    </LinearLayout>
+</ScrollView>

@@ -1,73 +1,100 @@
 package com.example.freeinternet;
 
 import android.os.Bundle;
-import android.view.View;
+import android.text.InputType;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.util.concurrent.TimeUnit;
+import okhttp3.Authenticator;
 import okhttp3.Call;
 import okhttp3.Callback;
+import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import okhttp3.Route;
 
 public class MainActivity extends AppCompatActivity {
-    private Button btnConnect;
+    private EditText etHost, etPort, etUser, etPassword;
+    private Button btnConnect, btnClear;
     private TextView tvStatus;
-
-    // Public proxies are inherently untrusted and can disappear without notice.
-    private final String[][] PROXY_LIST = {
-        {"103.152.112.162", "80"},
-        {"185.169.215.200", "8080"},
-        {"45.77.177.229", "3128"},
-        {"103.216.227.168", "80"}
+    private static final String[] TEST_URLS = {
+            "https://www.google.com/generate_204",
+            "https://www.cloudflare.com/cdn-cgi/trace",
+            "https://example.com/"
     };
+    private static final int MAX_ATTEMPTS = 3;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        btnConnect = findViewById(R.id.btnConnect);
+        etHost = findViewById(R.id.etHost); etPort = findViewById(R.id.etPort);
+        etUser = findViewById(R.id.etUser); etPassword = findViewById(R.id.etPassword);
+        btnConnect = findViewById(R.id.btnConnect); btnClear = findViewById(R.id.btnClear);
         tvStatus = findViewById(R.id.tvStatus);
-        btnConnect.setOnClickListener(v -> {
-            btnConnect.setEnabled(false);
-            btnConnect.setText("Testing proxies...");
-            tvStatus.setText("Scanning " + PROXY_LIST.length + " public nodes...");
-            tryConnection(0);
-        });
+        loadSavedProxy();
+        btnConnect.setOnClickListener(v -> startTest());
+        btnClear.setOnClickListener(v -> { etHost.setText(""); etPort.setText(""); etUser.setText(""); etPassword.setText("");
+            getPreferences(MODE_PRIVATE).edit().clear().apply(); tvStatus.setText("Proxy cleared. Ready to test direct internet."); });
     }
 
-    private void tryConnection(int index) {
-        if (index >= PROXY_LIST.length) {
-            runOnUiThread(() -> {
-                tvStatus.setText("No tested proxy responded.");
-                btnConnect.setEnabled(true);
-                btnConnect.setText("Retry");
-            });
+    private void startTest() {
+        String host = etHost.getText().toString().trim();
+        String portText = etPort.getText().toString().trim();
+        final int port;
+        if (host.isEmpty() && portText.isEmpty()) port = -1;
+        else {
+            try { port = Integer.parseInt(portText); } catch (NumberFormatException e) { tvStatus.setText("Enter a valid numeric proxy port."); return; }
+            if (host.isEmpty() || port < 1 || port > 65535) { tvStatus.setText("Enter both a valid proxy host and port."); return; }
+        }
+        saveProxy();
+        btnConnect.setEnabled(false); btnClear.setEnabled(false); btnConnect.setText("TESTING...");
+        tvStatus.setText(port < 0 ? "Testing direct HTTPS connectivity..." : "Testing trusted proxy with HTTPS...\nRetries: 0/" + MAX_ATTEMPTS);
+        testAttempt(host, port, 0, 0, null);
+    }
+
+    private void testAttempt(String host, int port, int attempt, int urlIndex, String lastError) {
+        if (attempt >= MAX_ATTEMPTS) {
+            runOnUiThread(() -> { tvStatus.setText("FAILED after " + MAX_ATTEMPTS + " attempts.\n" + (lastError == null ? "No HTTPS response." : lastError) + "\n\nCheck host, port, credentials, firewall, and whether the endpoint supports HTTP CONNECT."); resetButtons(); });
             return;
         }
-        String host = PROXY_LIST[index][0];
-        int port = Integer.parseInt(PROXY_LIST[index][1]);
-        Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(host, port));
-        OkHttpClient client = new OkHttpClient.Builder()
-                .proxy(proxy).connectTimeout(5, TimeUnit.SECONDS).readTimeout(5, TimeUnit.SECONDS).build();
-        Request request = new Request.Builder().url("https://www.google.com")
-                .header("User-Agent", "FreeInternetConnect/1.0").build();
-        client.newCall(request).enqueue(new Callback() {
-            @Override public void onFailure(Call call, IOException e) { tryConnection(index + 1); }
+        if (urlIndex >= TEST_URLS.length) {
+            try { Thread.sleep(600L * (attempt + 1)); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
+            testAttempt(host, port, attempt + 1, 0, lastError);
+            return;
+        }
+        OkHttpClient.Builder builder = new OkHttpClient.Builder()
+                .connectTimeout(8, TimeUnit.SECONDS).readTimeout(10, TimeUnit.SECONDS)
+                .callTimeout(15, TimeUnit.SECONDS).retryOnConnectionFailure(true);
+        if (port > 0) {
+            builder.proxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress(host, port)));
+            String user = etUser.getText().toString(); String password = etPassword.getText().toString();
+            if (!user.isEmpty()) builder.proxyAuthenticator((route, response) -> {
+                if (response.request().header("Proxy-Authorization") != null) return null;
+                return response.request().newBuilder().header("Proxy-Authorization", Credentials.basic(user, password)).build();
+            });
+        }
+        Request request = new Request.Builder().url(TEST_URLS[urlIndex]).header("User-Agent", "FreeInternetConnect/2.0").build();
+        final int nextUrl = urlIndex + 1;
+        builder.build().newCall(request).enqueue(new Callback() {
+            @Override public void onFailure(Call call, IOException e) {
+                runOnUiThread(() -> tvStatus.setText("Testing... attempt " + (attempt + 1) + "/" + MAX_ATTEMPTS + "\n" + e.getClass().getSimpleName() + ": " + e.getMessage()));
+                testAttempt(host, port, attempt, nextUrl, e.getClass().getSimpleName() + ": " + e.getMessage());
+            }
             @Override public void onResponse(Call call, Response response) {
-                response.close();
-                if (response.isSuccessful()) {
-                    runOnUiThread(() -> {
-                        tvStatus.setText("Proxy responded: " + host + ":" + port);
-                        btnConnect.setText("Test again");
-                        btnConnect.setEnabled(true);
-                    });
-                } else { tryConnection(index + 1); }
+                int code = response.code(); response.close();
+                if (code >= 200 && code < 400) runOnUiThread(() -> { tvStatus.setText("SUCCESS\nHTTPS verified with response " + code + (port > 0 ? " via " + host + ":" + port : " directly")); resetButtons(); });
+                else testAttempt(host, port, attempt, nextUrl, "HTTP response " + code);
             }
         });
     }
+
+    private void resetButtons() { btnConnect.setEnabled(true); btnClear.setEnabled(true); btnConnect.setText("TEST AGAIN"); }
+    private void saveProxy() { getPreferences(MODE_PRIVATE).edit().putString("host", etHost.getText().toString()).putString("port", etPort.getText().toString()).putString("user", etUser.getText().toString()).apply(); }
+    private void loadSavedProxy() { android.content.SharedPreferences p = getPreferences(MODE_PRIVATE); etHost.setText(p.getString("host", "")); etPort.setText(p.getString("port", "")); etUser.setText(p.getString("user", "")); }
 }
